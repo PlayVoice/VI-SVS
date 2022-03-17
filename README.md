@@ -24,7 +24,7 @@ python muskit/data_label_single.py
 
 label_dump,midi_dump,wav_dump:一个文件一个标注    
 
-注意：label和lable的混用，两种写法都是对的     
+注意：label和lable的混用（两个单词都是对的）     
 
 VISinger_data       
 --label_dump        
@@ -41,7 +41,7 @@ VISinger_data
 --wav_dump      
 --wav_dump_16k      
 
-3, 生成VITS需要的files，并分割为train和dev，test不需要（可以手动设计）
+3, 生成VITS需要的files，并分割为train和dev，test不需要（可以手动设计）      
 python muskit/data_format_vits.py
 
 vits_file.txt 中的内容格式：wave path|label path|pitch path;
