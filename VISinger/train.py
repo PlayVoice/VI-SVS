@@ -96,6 +96,8 @@ def run(rank, n_gpus, hps):
       hps.train.learning_rate, 
       betas=hps.train.betas, 
       eps=hps.train.eps)
+  # net_g = DDP(net_g, device_ids=[rank], find_unused_parameters=True)
+  # net_d = DDP(net_d, device_ids=[rank], find_unused_parameters=True)
   net_g = DDP(net_g, device_ids=[rank])
   net_d = DDP(net_d, device_ids=[rank])
 
@@ -134,15 +136,16 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
 
   net_g.train()
   net_d.train()
-  for batch_idx, (x, x_lengths, xt, xt_lengths, spec, spec_lengths, y, y_lengths) in enumerate(train_loader):
+  for batch_idx, (x, x_lengths, xt, xt_lengths, f0, f0_lengths, spec, spec_lengths, y, y_lengths) in enumerate(train_loader):
     x, x_lengths = x.cuda(rank, non_blocking=True), x_lengths.cuda(rank, non_blocking=True)
     xt, xt_lengths = xt.cuda(rank, non_blocking=True), xt_lengths.cuda(rank, non_blocking=True)
+    f0, f0_lengths = f0.cuda(rank, non_blocking=True), f0_lengths.cuda(rank, non_blocking=True)
     spec, spec_lengths = spec.cuda(rank, non_blocking=True), spec_lengths.cuda(rank, non_blocking=True)
     y, y_lengths = y.cuda(rank, non_blocking=True), y_lengths.cuda(rank, non_blocking=True)
 
     with autocast(enabled=hps.train.fp16_run):
       y_hat, ids_slice, x_mask, z_mask,\
-      (z, z_p, m_p, logs_p, m_q, logs_q) = net_g(x, x_lengths, xt, xt_lengths, spec, spec_lengths)
+      (z, z_p, m_p, logs_p, m_q, logs_q) = net_g(x, x_lengths, xt, xt_lengths, f0, f0_lengths, spec, spec_lengths)
 
       mel = spec_to_mel_torch(
           spec, 
@@ -234,21 +237,24 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
 def evaluate(hps, generator, eval_loader, writer_eval):
     generator.eval()
     with torch.no_grad():
-      for batch_idx, (x, x_lengths, xt, xt_lengths, spec, spec_lengths, y, y_lengths) in enumerate(eval_loader):
+      for batch_idx, (x, x_lengths, xt, xt_lengths, f0, f0_lengths, spec, spec_lengths, y, y_lengths) in enumerate(eval_loader):
         x, x_lengths = x.cuda(0), x_lengths.cuda(0)
         xt, xt_lengths = xt.cuda(0), xt_lengths.cuda(0)
+        f0, f0_lengths = f0.cuda(0), f0_lengths.cuda(0)
         spec, spec_lengths = spec.cuda(0), spec_lengths.cuda(0)
         y, y_lengths = y.cuda(0), y_lengths.cuda(0)
 
         # remove else
         x = x[:1]
         x_lengths = x_lengths[:1]
+        f0 = f0[:1]
+        f0_lengths = f0_lengths[:1]
         spec = spec[:1]
         spec_lengths = spec_lengths[:1]
         y = y[:1]
         y_lengths = y_lengths[:1]
         break
-      y_hat, mask, *_ = generator.module.infer(x, x_lengths, xt, xt_lengths, max_len=1000)
+      y_hat, mask, *_ = generator.module.infer(x, x_lengths, xt, xt_lengths, f0, f0_lengths, max_len=1000)
       y_hat_lengths = mask.sum([1,2]).long() * hps.data.hop_length
 
       mel = spec_to_mel_torch(

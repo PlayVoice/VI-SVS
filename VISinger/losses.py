@@ -2,7 +2,6 @@ import torch
 from torch.nn import functional as F
 
 import commons
-import numpy as np
 
 
 def feature_loss(fmap_r, fmap_g):
@@ -53,8 +52,8 @@ def kl_loss(z_p, logs_q, m_p, logs_p, z_mask):
   logs_q = logs_q.float()
   m_p = m_p.float()
   logs_p = logs_p.float()
-  z_mask = z_mask.float() 
-  
+  z_mask = z_mask.float()
+
   kl = logs_p - logs_q - 0.5
   kl += 0.5 * ((z_p - m_p)**2) * torch.exp(-2. * logs_p)
   kl = torch.sum(kl * z_mask)

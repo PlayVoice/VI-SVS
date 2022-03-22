@@ -9,6 +9,25 @@ import commons
 from mel_processing import spectrogram_torch
 from utils import load_wav_to_torch, load_filepaths_and_text
 
+import math
+import librosa
+import pyworld as pw
+
+def compute_f0(filename: str, sr: int) -> np.ndarray:
+    x, sr = librosa.load(filename, sr=sr)
+    f0, t = pw.dio(
+        x.astype(np.double),
+        fs=16000,
+        f0_ceil=8000,
+        frame_period=1000 * 256 / 16000,
+    )
+    f0 = pw.stonemask(x.astype(np.double), f0, t, 16000)
+    f0 = f0[:-1]
+    f0 = np.maximum(f0, 1)
+    f0 = np.log(f0)
+    f0 = f0.astype(np.float32)
+    f0 = torch.FloatTensor(f0)
+    return f0
 
 class TextAudioLoader(torch.utils.data.Dataset):
     """
@@ -48,7 +67,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
         # separate filename and text
         audiopath, text, tone = audiopath_and_text[0], audiopath_and_text[1], audiopath_and_text[2]
         text, tone = self.get_text_tone(text, tone)
-        spec, wav = self.get_audio(audiopath)
+        f0, spec, wav = self.get_audio(audiopath)
         len_text = text.size()[0]
         len_tone = tone.size()[0]
         len_spec = spec.size()[-1]
@@ -66,9 +85,10 @@ class TextAudioLoader(torch.utils.data.Dataset):
             # print(f"len_wav={len_wav}")
             text = text[:len_min]
             tone = tone[:len_min]
+            f0 = f0[:len_min]
             spec = spec[:,:len_min]
             wav = wav[:,:len_wav]
-        return (text, tone, spec, wav)
+        return (text, tone, f0, spec, wav)
 
     def get_audio(self, filename):
         audio, sampling_rate = load_wav_to_torch(filename)
@@ -86,7 +106,18 @@ class TextAudioLoader(torch.utils.data.Dataset):
                 center=False)
             spec = torch.squeeze(spec, 0)
             torch.save(spec, spec_filename)
-        return spec, audio_norm
+        
+        f0_filename = filename.replace(".wav", ".f0.pt")
+        if os.path.exists(f0_filename):
+            f0 = torch.load(f0_filename)
+        else:
+            # amor ***16000***
+            f0 = compute_f0(filename, 16000)
+            torch.save(f0, f0_filename)
+            # print(f0)
+            # print(f0.size())
+            # print(spec.size())
+        return f0, spec, audio_norm
 
     def get_text_tone(self, text, tone):
         text_norm = np.load(text)
@@ -116,25 +147,29 @@ class TextAudioCollate():
         """
         # Right zero-pad all one-hot text sequences to max input length
         _, ids_sorted_decreasing = torch.sort(
-            torch.LongTensor([x[2].size(1) for x in batch]),
+            torch.LongTensor([x[3].size(1) for x in batch]),
             dim=0, descending=True)
 
         max_text_len = max([len(x[0]) for x in batch])
         max_tone_len = max([len(x[1]) for x in batch])
-        max_spec_len = max([x[2].size(1) for x in batch])
-        max_wav_len = max([x[3].size(1) for x in batch])
+        max_f0_len = max([len(x[2]) for x in batch])
+        max_spec_len = max([x[3].size(1) for x in batch])
+        max_wav_len = max([x[4].size(1) for x in batch])
 
         text_lengths = torch.LongTensor(len(batch))
         tone_lengths = torch.LongTensor(len(batch))
+        f0_lengths = torch.LongTensor(len(batch))
         spec_lengths = torch.LongTensor(len(batch))
         wav_lengths = torch.LongTensor(len(batch))
 
         text_padded = torch.LongTensor(len(batch), max_text_len)
         tone_padded = torch.LongTensor(len(batch), max_tone_len)
-        spec_padded = torch.FloatTensor(len(batch), batch[0][2].size(0), max_spec_len)
+        f0_padded = torch.FloatTensor(len(batch), max_f0_len)
+        spec_padded = torch.FloatTensor(len(batch), batch[0][3].size(0), max_spec_len)
         wav_padded = torch.FloatTensor(len(batch), 1, max_wav_len)
-        tone_padded.zero_()
         text_padded.zero_()
+        tone_padded.zero_()
+        f0_padded.zero_()
         spec_padded.zero_()
         wav_padded.zero_()
         for i in range(len(ids_sorted_decreasing)):
@@ -148,17 +183,21 @@ class TextAudioCollate():
             tone_padded[i, :tone.size(0)] = tone
             tone_lengths[i] = tone.size(0)
 
-            spec = row[2]
+            f0 = row[2]
+            f0_padded[i, :f0.size(0)] = f0
+            f0_lengths[i] = f0.size(0)
+
+            spec = row[3]
             spec_padded[i, :, :spec.size(1)] = spec
             spec_lengths[i] = spec.size(1)
 
-            wav = row[3]
+            wav = row[4]
             wav_padded[i, :, :wav.size(1)] = wav
             wav_lengths[i] = wav.size(1)
 
         if self.return_ids:
-            return text_padded, text_lengths, tone_padded, tone_lengths, spec_padded, spec_lengths, wav_padded, wav_lengths, ids_sorted_decreasing
-        return text_padded, text_lengths, tone_padded, tone_lengths, spec_padded, spec_lengths, wav_padded, wav_lengths
+            return text_padded, text_lengths, tone_padded, tone_lengths, f0_padded, f0_lengths, spec_padded, spec_lengths, wav_padded, wav_lengths, ids_sorted_decreasing
+        return text_padded, text_lengths, tone_padded, tone_lengths, f0_padded, f0_lengths, spec_padded, spec_lengths, wav_padded, wav_lengths
 
 
 class DistributedBucketSampler(torch.utils.data.distributed.DistributedSampler):

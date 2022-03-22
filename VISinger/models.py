@@ -154,6 +154,12 @@ class TextEncoder(nn.Module):
     nn.init.normal_(self.emb.weight, 0.0, hidden_channels**-0.5)
     nn.init.normal_(self.emb_tone.weight, 0.0, hidden_channels**-0.5)
 
+    self.pitch_emb = nn.Conv1d(
+      1,
+      hidden_channels,
+      kernel_size=7,
+      padding=3)
+
     self.encoder = attentions.Encoder(
       hidden_channels,
       filter_channels,
@@ -161,15 +167,34 @@ class TextEncoder(nn.Module):
       n_layers,
       kernel_size,
       p_dropout)
-    self.proj= nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
-  def forward(self, x, x_lengths, xt, xt_lengths):
+    self.encoder_xt = attentions.Encoder(
+      hidden_channels,
+      filter_channels,
+      n_heads,
+      n_layers,
+      kernel_size,
+      p_dropout)
+
+    self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
+
+  def forward(self, x, x_lengths, xt, xt_lengths, f0, f0_lengths):
     x = self.emb(x)
-    x = x + self.emb_tone(xt)
     x = x * math.sqrt(self.hidden_channels) # [b, t, h]
     x = torch.transpose(x, 1, -1) # [b, h, t]
     x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
     x = self.encoder(x * x_mask, x_mask)
+
+    xt = self.emb_tone(xt)
+    xt = xt * math.sqrt(self.hidden_channels) # [b, t, h]
+    xt = torch.transpose(xt, 1, -1) # [b, h, t]
+    xt = self.encoder_xt(xt * x_mask, x_mask)
+
+    f = f0.unsqueeze(-1)
+    f = torch.transpose(f, 1, -1) # [b, h, t]
+    f = self.pitch_emb(f)
+  
+    x = x + xt + f
     stats = self.proj(x) * x_mask
 
     m, logs = torch.split(stats, self.out_channels, dim=1)
@@ -455,9 +480,8 @@ class SynthesizerTrn(nn.Module):
     if n_speakers > 1:
       self.emb_g = nn.Embedding(n_speakers, gin_channels)
 
-  def forward(self, x, x_lengths, xt, xt_lengths, y, y_lengths, sid=None):
-
-    x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, xt, xt_lengths)
+  def forward(self, x, x_lengths, xt, xt_lengths, f0, f0_lengths, y, y_lengths, sid=None):
+    x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, xt, xt_lengths, f0, f0_lengths)
     if self.n_speakers > 0:
       g = self.emb_g(sid).unsqueeze(-1) # [b, h, 1]
     else:
@@ -474,8 +498,8 @@ class SynthesizerTrn(nn.Module):
     o = self.dec(z_slice, g=g)
     return o, ids_slice, x_mask, y_mask, (z, z_p, m_p, logs_p, m_q, logs_q)
 
-  def infer(self, x, x_lengths, xt, xt_lengths, sid=None, noise_scale=1, length_scale=1, noise_scale_w=1., max_len=None):
-    x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, xt, xt_lengths)
+  def infer(self, x, x_lengths, xt, xt_lengths, f0, f0_lengths, sid=None, noise_scale=1, length_scale=1, noise_scale_w=1., max_len=None):
+    x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, xt, xt_lengths, f0, f0_lengths)
     if self.n_speakers > 0:
       g = self.emb_g(sid).unsqueeze(-1) # [b, h, 1]
     else:
@@ -488,3 +512,10 @@ class SynthesizerTrn(nn.Module):
     z = self.flow(z_p, x_mask, g=g, reverse=True)
     o = self.dec((z * x_mask)[:,:,:max_len], g=g)
     return o, x_mask, (z, z_p, m_p, logs_p)
+
+  def voice_conversion(self, y, y_lengths):
+    z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=None)
+    z_p = self.flow(z, y_mask, g=None)
+    z_hat = self.flow(z_p, y_mask, g=None, reverse=True)
+    o_hat = self.dec(z_hat * y_mask, g=None)
+    return o_hat, y_mask, (z, z_p, z_hat)
