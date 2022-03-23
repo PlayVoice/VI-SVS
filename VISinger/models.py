@@ -185,16 +185,18 @@ class TextEncoder(nn.Module):
     x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
     x = self.encoder(x * x_mask, x_mask)
 
+    f = f0.unsqueeze(-1)
+    f = torch.transpose(f, 1, -1) # [b, h, t]
+    f = self.pitch_emb(f)
+    f = torch.transpose(f, 1, -1)
+
     xt = self.emb_tone(xt)
+    xt = xt + f
     xt = xt * math.sqrt(self.hidden_channels) # [b, t, h]
     xt = torch.transpose(xt, 1, -1) # [b, h, t]
     xt = self.encoder_xt(xt * x_mask, x_mask)
 
-    f = f0.unsqueeze(-1)
-    f = torch.transpose(f, 1, -1) # [b, h, t]
-    f = self.pitch_emb(f)
-  
-    x = x + xt + f
+    x = x + xt
     stats = self.proj(x) * x_mask
 
     m, logs = torch.split(stats, self.out_channels, dim=1)
