@@ -67,3 +67,7 @@ cd ../;python muskit/infer_midi.py;cd -;python vsinging_edit.py
 <audio id="audio" controls="" preload="none">
       <source id="wav" src="/resource/vising_sample.wav">
 </audio>
+
+# 样例音频
+
+[vits_singing_样例.wav](/resource/vising_sample.wav)
