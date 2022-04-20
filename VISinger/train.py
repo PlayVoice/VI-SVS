@@ -203,6 +203,12 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
         logger.info('Train Epoch: {} [{:.0f}%]'.format(
           epoch,
           100. * batch_idx / len(train_loader)))
+        # For Tensorboard display
+        if (loss_mel > 50):
+          loss_mel = 50
+        if (loss_kl > 5):
+          loss_kl = 5
+
         logger.info([global_step, lr])
         logger.info(f'loss_disc={loss_disc:.3f}, loss_gen={loss_gen:.3f}, loss_fm={loss_fm:.3f}')
         logger.info(f'loss_mel={loss_mel:.3f}, loss_kl={loss_kl:.3f}')

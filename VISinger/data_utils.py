@@ -13,18 +13,38 @@ import math
 import librosa
 import pyworld as pw
 
-def compute_f0(filename: str, sr: int) -> np.ndarray:
+f0_bin = 256
+f0_max = 1100.0
+f0_min = 50.0
+f0_mel_min = 1127 * np.log(1 + f0_min / 700)
+f0_mel_max = 1127 * np.log(1 + f0_max / 700)
+
+
+def f0_to_coarse(f0):
+    is_torch = isinstance(f0, torch.Tensor)
+    f0_mel = 1127 * (1 + f0 / 700).log() if is_torch else 1127 * np.log(1 + f0 / 700)
+    f0_mel[f0_mel > 0] = (f0_mel[f0_mel > 0] - f0_mel_min) * (f0_bin - 2) / (f0_mel_max - f0_mel_min) + 1
+
+    # use 0 or 1
+    f0_mel[f0_mel <= 1] = 1
+    f0_mel[f0_mel > f0_bin - 1] = f0_bin - 1
+    f0_coarse = (f0_mel + 0.5).long() if is_torch else np.rint(f0_mel).astype(np.int)
+    assert f0_coarse.max() <= 255 and f0_coarse.min() >= 1, (f0_coarse.max(), f0_coarse.min())
+    return f0_coarse
+
+def compute_f0(filename: str, sr: int):
     x, sr = librosa.load(filename, sr=sr)
     f0, t = pw.dio(
         x.astype(np.double),
         fs=16000,
-        f0_ceil=8000,
+        f0_ceil=800,
         frame_period=1000 * 256 / 16000,
     )
     f0 = pw.stonemask(x.astype(np.double), f0, t, 16000)
     f0 = f0[:-1]
-    f0 = np.maximum(f0, 1)
-    f0 = np.log(f0)
+    # use 256 quantization, so no use log
+    # f0 = np.maximum(f0, 1)
+    # f0 = np.log(f0)
     f0 = f0.astype(np.float32)
     f0 = torch.FloatTensor(f0)
     return f0
@@ -113,6 +133,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
         else:
             # amor ***16000***
             f0 = compute_f0(filename, 16000)
+            f0 = f0_to_coarse(f0)
             torch.save(f0, f0_filename)
             # print(f0)
             # print(f0.size())
@@ -164,7 +185,7 @@ class TextAudioCollate():
 
         text_padded = torch.LongTensor(len(batch), max_text_len)
         tone_padded = torch.LongTensor(len(batch), max_tone_len)
-        f0_padded = torch.FloatTensor(len(batch), max_f0_len)
+        f0_padded = torch.LongTensor(len(batch), max_f0_len)
         spec_padded = torch.FloatTensor(len(batch), batch[0][3].size(0), max_spec_len)
         wav_padded = torch.FloatTensor(len(batch), 1, max_wav_len)
         text_padded.zero_()

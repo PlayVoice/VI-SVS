@@ -8,7 +8,7 @@ from midi_load import read_label_duration, midi_to_seq
 from phone_map import label_to_ids
 
 
-def label_for_vits(label_path:str, midi_path:str, fs=24000, hop=256):
+def label_for_vits(label_path:str, midi_path:str, fs=16000, hop=256):
     # the format of phoneme duration information
     label_duration_file = open(label_path, "r", encoding="utf-8")
     label_duration_info = label_duration_file.read()

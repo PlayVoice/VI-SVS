@@ -22,7 +22,7 @@ net_g = SynthesizerTrn(
     hps.train.segment_size // hps.data.hop_length,
     **hps.model).cuda()
 
-_ = utils.load_checkpoint("./logs/singing_base/G_270000.pth", net_g, None)
+_ = utils.load_checkpoint("./logs/singing_base/G_140000.pth", net_g, None)
 net_g.eval()
 # net_g.remove_weight_norm()
 

@@ -135,24 +135,12 @@ class TextEncoder(nn.Module):
 
     self.emb = nn.Embedding(63, hidden_channels)# phone lables
     self.emb_tone = nn.Embedding(128, hidden_channels)# pitch notes
+    self.emb_pitch = nn.Embedding(256, hidden_channels)# pitch 256
     nn.init.normal_(self.emb.weight, 0.0, hidden_channels**-0.5)
     nn.init.normal_(self.emb_tone.weight, 0.0, hidden_channels**-0.5)
-
-    self.pitch_emb = nn.Conv1d(
-      1,
-      hidden_channels,
-      kernel_size=7,
-      padding=3)
+    nn.init.normal_(self.emb_pitch.weight, 0.0, hidden_channels**-0.5)
 
     self.encoder = attentions.Encoder(
-      hidden_channels,
-      filter_channels,
-      n_heads,
-      n_layers,
-      kernel_size,
-      p_dropout)
-
-    self.encoder_xt = attentions.Encoder(
       hidden_channels,
       filter_channels,
       n_heads,
@@ -168,25 +156,15 @@ class TextEncoder(nn.Module):
     self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
   def forward(self, x, x_lengths, xt, xt_lengths, f0, f0_lengths):
+    f = self.emb_pitch(f0)
+
     x = self.emb(x)
+    x = x + self.emb_tone(xt) + f
     x = x * math.sqrt(self.hidden_channels) # [b, t, h]
     x = torch.transpose(x, 1, -1) # [b, h, t]
     x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
     x = self.encoder(x * x_mask, x_mask)
 
-    f = f0.unsqueeze(-1)
-    f = torch.transpose(f, 1, -1) # [b, h, t]
-    f = self.pitch_emb(f)
-    f = torch.transpose(f, 1, -1)
-
-    xt = self.emb_tone(xt)
-    xt = xt + f
-    xt = xt * math.sqrt(self.hidden_channels) # [b, t, h]
-    xt = torch.transpose(xt, 1, -1) # [b, h, t]
-    xt = self.encoder_xt(xt * x_mask, x_mask)
-
-    x = x + xt
-	
     batch_size = x.shape[0]
     seque_size = x.shape[-1]
 

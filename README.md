@@ -61,3 +61,9 @@ python vsinging_infer.py
 # 编辑midi，然后测试
 cd ../;python muskit/infer_midi.py;cd -;python vsinging_edit.py
 
+![LOSS值](/resource/vising_loss.png)
+![MEL谱](/resource/vising_mel.png)
+
+<audio id="audio" controls="" preload="none">
+      <source id="wav" src="/resource/vising_sample.wav">
+</audio>
