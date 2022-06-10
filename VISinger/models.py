@@ -14,40 +14,46 @@ from commons import init_weights, get_padding
 
 
 class DurationPredictor(nn.Module):
-  def __init__(self, in_channels, filter_channels, kernel_size, p_dropout, gin_channels=0):
-    super().__init__()
+    def __init__(
+        self, in_channels, filter_channels, kernel_size, p_dropout, gin_channels=0
+    ):
+        super().__init__()
 
-    self.in_channels = in_channels
-    self.filter_channels = filter_channels
-    self.kernel_size = kernel_size
-    self.p_dropout = p_dropout
-    self.gin_channels = gin_channels
+        self.in_channels = in_channels
+        self.filter_channels = filter_channels
+        self.kernel_size = kernel_size
+        self.p_dropout = p_dropout
+        self.gin_channels = gin_channels
 
-    self.drop = nn.Dropout(p_dropout)
-    self.conv_1 = nn.Conv1d(in_channels, filter_channels, kernel_size, padding=kernel_size//2)
-    self.norm_1 = modules.LayerNorm(filter_channels)
-    self.conv_2 = nn.Conv1d(filter_channels, filter_channels, kernel_size, padding=kernel_size//2)
-    self.norm_2 = modules.LayerNorm(filter_channels)
-    self.proj = nn.Conv1d(filter_channels, 1, 1)
+        self.drop = nn.Dropout(p_dropout)
+        self.conv_1 = nn.Conv1d(
+            in_channels, filter_channels, kernel_size, padding=kernel_size // 2
+        )
+        self.norm_1 = modules.LayerNorm(filter_channels)
+        self.conv_2 = nn.Conv1d(
+            filter_channels, filter_channels, kernel_size, padding=kernel_size // 2
+        )
+        self.norm_2 = modules.LayerNorm(filter_channels)
+        self.proj = nn.Conv1d(filter_channels, 1, 1)
 
-    if gin_channels != 0:
-      self.cond = nn.Conv1d(gin_channels, in_channels, 1)
+        if gin_channels != 0:
+            self.cond = nn.Conv1d(gin_channels, in_channels, 1)
 
-  def forward(self, x, x_mask, g=None):
-    x = torch.detach(x)
-    if g is not None:
-      g = torch.detach(g)
-      x = x + self.cond(g)
-    x = self.conv_1(x * x_mask)
-    x = torch.relu(x)
-    x = self.norm_1(x)
-    x = self.drop(x)
-    x = self.conv_2(x * x_mask)
-    x = torch.relu(x)
-    x = self.norm_2(x)
-    x = self.drop(x)
-    x = self.proj(x * x_mask)
-    return x * x_mask
+    def forward(self, x, x_mask, g=None):
+        x = torch.detach(x)
+        if g is not None:
+            g = torch.detach(g)
+            x = x + self.cond(g)
+        x = self.conv_1(x * x_mask)
+        x = torch.relu(x)
+        x = self.norm_1(x)
+        x = self.drop(x)
+        x = self.conv_2(x * x_mask)
+        x = torch.relu(x)
+        x = self.norm_2(x)
+        x = self.drop(x)
+        x = self.proj(x * x_mask)
+        return x * x_mask
 
 
 class SinusoidalPositionalEmbedding(nn.Module):
@@ -65,7 +71,7 @@ class SinusoidalPositionalEmbedding(nn.Module):
             embedding_dim,
             padding_idx,
         )
-        self.register_buffer('_float_tensor', torch.FloatTensor(1))
+        self.register_buffer("_float_tensor", torch.FloatTensor(1))
 
     @staticmethod
     def get_embedding(num_embeddings, embedding_dim, padding_idx=None):
@@ -77,8 +83,12 @@ class SinusoidalPositionalEmbedding(nn.Module):
         half_dim = embedding_dim // 2
         emb = math.log(10000) / (half_dim - 1)
         emb = torch.exp(torch.arange(half_dim, dtype=torch.float) * -emb)
-        emb = torch.arange(num_embeddings, dtype=torch.float).unsqueeze(1) * emb.unsqueeze(0)
-        emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=1).view(num_embeddings, -1)
+        emb = torch.arange(num_embeddings, dtype=torch.float).unsqueeze(
+            1
+        ) * emb.unsqueeze(0)
+        emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=1).view(
+            num_embeddings, -1
+        )
         if embedding_dim % 2 == 1:
             # zero pad
             emb = torch.cat([emb, torch.zeros(num_embeddings, 1)], dim=1)
@@ -87,18 +97,16 @@ class SinusoidalPositionalEmbedding(nn.Module):
         return emb
 
     def make_positions(tensor, padding_idx):
-      """Replace non-padding symbols with their position numbers.
+        """Replace non-padding symbols with their position numbers.
 
-      Position numbers begin at padding_idx+1. Padding symbols are ignored.
-      """
-      # The series of casts and type-conversions here are carefully
-      # balanced to both work with ONNX export and XLA. In particular XLA
-      # prefers ints, cumsum defaults to output longs, and ONNX doesn't know
-      # how to handle the dtype kwarg in cumsum.
-      mask = tensor.ne(padding_idx).int()
-      return (
-                     torch.cumsum(mask, dim=1).type_as(mask) * mask
-             ).long() + padding_idx
+        Position numbers begin at padding_idx+1. Padding symbols are ignored.
+        """
+        # The series of casts and type-conversions here are carefully
+        # balanced to both work with ONNX export and XLA. In particular XLA
+        # prefers ints, cumsum defaults to output longs, and ONNX doesn't know
+        # how to handle the dtype kwarg in cumsum.
+        mask = tensor.ne(padding_idx).int()
+        return (torch.cumsum(mask, dim=1).type_as(mask) * mask).long() + padding_idx
 
     def forward(self, bsz, seq_len, input):
         """Input is expected to be of size [bsz seqlen]."""
@@ -111,166 +119,218 @@ class SinusoidalPositionalEmbedding(nn.Module):
                 self.padding_idx,
             )
         self.weights = self.weights.to(self._float_tensor)
-        positions = SinusoidalPositionalEmbedding.make_positions(input, self.padding_idx)
-        return self.weights.index_select(0, positions.view(-1)).view(bsz, seq_len, -1).detach()
+        positions = SinusoidalPositionalEmbedding.make_positions(
+            input, self.padding_idx
+        )
+        return (
+            self.weights.index_select(0, positions.view(-1))
+            .view(bsz, seq_len, -1)
+            .detach()
+        )
 
 
 class TextEncoder(nn.Module):
-  def __init__(self,
-      out_channels,
-      hidden_channels,
-      filter_channels,
-      n_heads,
-      n_layers,
-      kernel_size,
-      p_dropout):
-    super().__init__()
-    self.out_channels = out_channels
-    self.hidden_channels = hidden_channels
-    self.filter_channels = filter_channels
-    self.n_heads = n_heads
-    self.n_layers = n_layers
-    self.kernel_size = kernel_size
-    self.p_dropout = p_dropout
+    def __init__(
+        self,
+        out_channels,
+        hidden_channels,
+        filter_channels,
+        n_heads,
+        n_layers,
+        kernel_size,
+        p_dropout,
+    ):
+        super().__init__()
+        self.out_channels = out_channels
+        self.hidden_channels = hidden_channels
+        self.filter_channels = filter_channels
+        self.n_heads = n_heads
+        self.n_layers = n_layers
+        self.kernel_size = kernel_size
+        self.p_dropout = p_dropout
 
-    self.emb = nn.Embedding(63, hidden_channels)# phone lables
-    self.emb_tone = nn.Embedding(128, hidden_channels)# pitch notes
-    self.emb_pitch = nn.Embedding(256, hidden_channels)# pitch 256
-    nn.init.normal_(self.emb.weight, 0.0, hidden_channels**-0.5)
-    nn.init.normal_(self.emb_tone.weight, 0.0, hidden_channels**-0.5)
-    nn.init.normal_(self.emb_pitch.weight, 0.0, hidden_channels**-0.5)
+        self.emb_phone = nn.Embedding(63, hidden_channels)  # phone lables
+        self.emb_score = nn.Embedding(128, hidden_channels)  # pitch notes
+        self.emb_pitch = nn.Embedding(256, hidden_channels)  # pitch 256
+        self.emb_slurs = nn.Embedding(2, hidden_channels)  # phone slur
+        nn.init.normal_(self.emb_phone.weight, 0.0, hidden_channels**-0.5)
+        nn.init.normal_(self.emb_score.weight, 0.0, hidden_channels**-0.5)
+        nn.init.normal_(self.emb_pitch.weight, 0.0, hidden_channels**-0.5)
+        nn.init.normal_(self.emb_slurs.weight, 0.0, hidden_channels**-0.5)
 
-    self.encoder = attentions.Encoder(
-      hidden_channels,
-      filter_channels,
-      n_heads,
-      n_layers,
-      kernel_size,
-      p_dropout)
-    
-    # max mel = 4000, 64seconds
-    self.embed_positions = SinusoidalPositionalEmbedding(
-                hidden_channels, padding_idx=0, init_size=4000,
-            )
-    self.drop = nn.Dropout(p_dropout)
-    self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
+        self.encoder = attentions.Encoder(
+            hidden_channels, filter_channels, n_heads, n_layers, kernel_size, p_dropout
+        )
 
-  def forward(self, x, x_lengths, xt, xt_lengths, f0, f0_lengths):
-    f = self.emb_pitch(f0)
+        # max mel = 4000, 64seconds
+        self.embed_positions = SinusoidalPositionalEmbedding(
+            hidden_channels,
+            padding_idx=0,
+            init_size=4000,
+        )
+        self.drop = nn.Dropout(p_dropout)
+        self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
-    x = self.emb(x)
-    x = x + self.emb_tone(xt) + f
-    x = x * math.sqrt(self.hidden_channels) # [b, t, h]
-    x = torch.transpose(x, 1, -1) # [b, h, t]
-    x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
-    x = self.encoder(x * x_mask, x_mask)
+    def forward(self, phone, score, pitch, slurs, lengths):
+        x = self.emb_phone(phone)
+        x = x + self.emb_score(score) + self.emb_pitch(pitch) + self.emb_slurs(slurs)
+        x = x * math.sqrt(self.hidden_channels)  # [b, t, h]
+        x = torch.transpose(x, 1, -1)  # [b, h, t]
+        x_mask = torch.unsqueeze(commons.sequence_mask(lengths, x.size(2)), 1).to(
+            x.dtype
+        )
+        x = self.encoder(x * x_mask, x_mask)
 
-    batch_size = x.shape[0]
-    seque_size = x.shape[-1]
+        batch_size = x.shape[0]
+        seque_size = x.shape[-1]
 
-    pos_in = torch.transpose(x, 1, -1)[..., 0]
-    p = self.embed_positions(batch_size, seque_size, pos_in)
-    p = torch.transpose(p, 1, -1) # [b, h, len]
+        pos_in = torch.transpose(x, 1, -1)[..., 0]
+        p = self.embed_positions(batch_size, seque_size, pos_in)
+        p = torch.transpose(p, 1, -1)  # [b, h, len]
 
-    x = x + p
-    x = self.drop(x)
+        x = x + p
+        x = self.drop(x)
 
-    stats = self.proj(x) * x_mask
+        stats = self.proj(x) * x_mask
 
-    m, logs = torch.split(stats, self.out_channels, dim=1)
-    return x, m, logs, x_mask
+        m, logs = torch.split(stats, self.out_channels, dim=1)
+        return x, m, logs, x_mask
 
 
 class ResidualCouplingBlock(nn.Module):
-  def __init__(self,
-      channels,
-      hidden_channels,
-      kernel_size,
-      dilation_rate,
-      n_layers,
-      n_flows=4,
-      gin_channels=0):
-    super().__init__()
-    self.channels = channels
-    self.hidden_channels = hidden_channels
-    self.kernel_size = kernel_size
-    self.dilation_rate = dilation_rate
-    self.n_layers = n_layers
-    self.n_flows = n_flows
-    self.gin_channels = gin_channels
+    def __init__(
+        self,
+        channels,
+        hidden_channels,
+        kernel_size,
+        dilation_rate,
+        n_layers,
+        n_flows=4,
+        gin_channels=0,
+    ):
+        super().__init__()
+        self.channels = channels
+        self.hidden_channels = hidden_channels
+        self.kernel_size = kernel_size
+        self.dilation_rate = dilation_rate
+        self.n_layers = n_layers
+        self.n_flows = n_flows
+        self.gin_channels = gin_channels
 
-    self.flows = nn.ModuleList()
-    for i in range(n_flows):
-      self.flows.append(modules.ResidualCouplingLayer(channels, hidden_channels, kernel_size, dilation_rate, n_layers, gin_channels=gin_channels, mean_only=True))
-      self.flows.append(modules.Flip())
+        self.flows = nn.ModuleList()
+        for i in range(n_flows):
+            self.flows.append(
+                modules.ResidualCouplingLayer(
+                    channels,
+                    hidden_channels,
+                    kernel_size,
+                    dilation_rate,
+                    n_layers,
+                    gin_channels=gin_channels,
+                    mean_only=True,
+                )
+            )
+            self.flows.append(modules.Flip())
 
-  def forward(self, x, x_mask, g=None, reverse=False):
-    if not reverse:
-      for flow in self.flows:
-        x, _ = flow(x, x_mask, g=g, reverse=reverse)
-    else:
-      for flow in reversed(self.flows):
-        x = flow(x, x_mask, g=g, reverse=reverse)
-    return x
+    def forward(self, x, x_mask, g=None, reverse=False):
+        if not reverse:
+            for flow in self.flows:
+                x, _ = flow(x, x_mask, g=g, reverse=reverse)
+        else:
+            for flow in reversed(self.flows):
+                x = flow(x, x_mask, g=g, reverse=reverse)
+        return x
 
-  def remove_weight_norm(self):
-    for i in range(self.n_flows):
-      self.flows[i * 2].remove_weight_norm()
+    def remove_weight_norm(self):
+        for i in range(self.n_flows):
+            self.flows[i * 2].remove_weight_norm()
 
 
 class PosteriorEncoder(nn.Module):
-  def __init__(self,
-      in_channels,
-      out_channels,
-      hidden_channels,
-      kernel_size,
-      dilation_rate,
-      n_layers,
-      gin_channels=0):
-    super().__init__()
-    self.in_channels = in_channels
-    self.out_channels = out_channels
-    self.hidden_channels = hidden_channels
-    self.kernel_size = kernel_size
-    self.dilation_rate = dilation_rate
-    self.n_layers = n_layers
-    self.gin_channels = gin_channels
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        hidden_channels,
+        kernel_size,
+        dilation_rate,
+        n_layers,
+        gin_channels=0,
+    ):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.hidden_channels = hidden_channels
+        self.kernel_size = kernel_size
+        self.dilation_rate = dilation_rate
+        self.n_layers = n_layers
+        self.gin_channels = gin_channels
 
-    self.pre = nn.Conv1d(in_channels, hidden_channels, 1)
-    self.enc = modules.WN(hidden_channels, kernel_size, dilation_rate, n_layers, gin_channels=gin_channels)
-    self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
+        self.pre = nn.Conv1d(in_channels, hidden_channels, 1)
+        self.enc = modules.WN(
+            hidden_channels,
+            kernel_size,
+            dilation_rate,
+            n_layers,
+            gin_channels=gin_channels,
+        )
+        self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
-  def forward(self, x, x_lengths, g=None):
-    x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
-    x = self.pre(x) * x_mask
-    x = self.enc(x, x_mask, g=g)
-    stats = self.proj(x) * x_mask
-    m, logs = torch.split(stats, self.out_channels, dim=1)
-    z = (m + torch.randn_like(m) * torch.exp(logs)) * x_mask
-    return z, m, logs, x_mask
-  
-  def remove_weight_norm(self):
-    self.enc.remove_weight_norm()
+    def forward(self, x, x_lengths, g=None):
+        x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(
+            x.dtype
+        )
+        x = self.pre(x) * x_mask
+        x = self.enc(x, x_mask, g=g)
+        stats = self.proj(x) * x_mask
+        m, logs = torch.split(stats, self.out_channels, dim=1)
+        z = (m + torch.randn_like(m) * torch.exp(logs)) * x_mask
+        return z, m, logs, x_mask
+
+    def remove_weight_norm(self):
+        self.enc.remove_weight_norm()
 
 
 class Generator(torch.nn.Module):
-    def __init__(self, initial_channel, resblock, resblock_kernel_sizes, resblock_dilation_sizes, upsample_rates, upsample_initial_channel, upsample_kernel_sizes, gin_channels=0):
+    def __init__(
+        self,
+        initial_channel,
+        resblock,
+        resblock_kernel_sizes,
+        resblock_dilation_sizes,
+        upsample_rates,
+        upsample_initial_channel,
+        upsample_kernel_sizes,
+        gin_channels=0,
+    ):
         super(Generator, self).__init__()
         self.num_kernels = len(resblock_kernel_sizes)
         self.num_upsamples = len(upsample_rates)
-        self.conv_pre = Conv1d(initial_channel, upsample_initial_channel, 7, 1, padding=3)
-        resblock = modules.ResBlock1 if resblock == '1' else modules.ResBlock2
+        self.conv_pre = Conv1d(
+            initial_channel, upsample_initial_channel, 7, 1, padding=3
+        )
+        resblock = modules.ResBlock1 if resblock == "1" else modules.ResBlock2
 
         self.ups = nn.ModuleList()
         for i, (u, k) in enumerate(zip(upsample_rates, upsample_kernel_sizes)):
-            self.ups.append(weight_norm(
-                ConvTranspose1d(upsample_initial_channel//(2**i), upsample_initial_channel//(2**(i+1)),
-                                k, u, padding=(k-u)//2)))
+            self.ups.append(
+                weight_norm(
+                    ConvTranspose1d(
+                        upsample_initial_channel // (2**i),
+                        upsample_initial_channel // (2 ** (i + 1)),
+                        k,
+                        u,
+                        padding=(k - u) // 2,
+                    )
+                )
+            )
 
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
-            ch = upsample_initial_channel//(2**(i+1))
-            for j, (k, d) in enumerate(zip(resblock_kernel_sizes, resblock_dilation_sizes)):
+            ch = upsample_initial_channel // (2 ** (i + 1))
+            for j, (k, d) in enumerate(
+                zip(resblock_kernel_sizes, resblock_dilation_sizes)
+            ):
                 self.resblocks.append(resblock(ch, k, d))
 
         self.conv_post = Conv1d(ch, 1, 7, 1, padding=3, bias=False)
@@ -282,7 +342,7 @@ class Generator(torch.nn.Module):
     def forward(self, x, g=None):
         x = self.conv_pre(x)
         if g is not None:
-          x = x + self.cond(g)
+            x = x + self.cond(g)
 
         for i in range(self.num_upsamples):
             x = F.leaky_relu(x, modules.LRELU_SLOPE)
@@ -290,9 +350,9 @@ class Generator(torch.nn.Module):
             xs = None
             for j in range(self.num_kernels):
                 if xs is None:
-                    xs = self.resblocks[i*self.num_kernels+j](x)
+                    xs = self.resblocks[i * self.num_kernels + j](x)
                 else:
-                    xs += self.resblocks[i*self.num_kernels+j](x)
+                    xs += self.resblocks[i * self.num_kernels + j](x)
             x = xs / self.num_kernels
         x = F.leaky_relu(x)
         x = self.conv_post(x)
@@ -313,13 +373,55 @@ class DiscriminatorP(torch.nn.Module):
         self.period = period
         self.use_spectral_norm = use_spectral_norm
         norm_f = weight_norm if use_spectral_norm == False else spectral_norm
-        self.convs = nn.ModuleList([
-            norm_f(Conv2d(1, 32, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
-            norm_f(Conv2d(32, 128, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
-            norm_f(Conv2d(128, 512, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
-            norm_f(Conv2d(512, 1024, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
-            norm_f(Conv2d(1024, 1024, (kernel_size, 1), 1, padding=(get_padding(kernel_size, 1), 0))),
-        ])
+        self.convs = nn.ModuleList(
+            [
+                norm_f(
+                    Conv2d(
+                        1,
+                        32,
+                        (kernel_size, 1),
+                        (stride, 1),
+                        padding=(get_padding(kernel_size, 1), 0),
+                    )
+                ),
+                norm_f(
+                    Conv2d(
+                        32,
+                        128,
+                        (kernel_size, 1),
+                        (stride, 1),
+                        padding=(get_padding(kernel_size, 1), 0),
+                    )
+                ),
+                norm_f(
+                    Conv2d(
+                        128,
+                        512,
+                        (kernel_size, 1),
+                        (stride, 1),
+                        padding=(get_padding(kernel_size, 1), 0),
+                    )
+                ),
+                norm_f(
+                    Conv2d(
+                        512,
+                        1024,
+                        (kernel_size, 1),
+                        (stride, 1),
+                        padding=(get_padding(kernel_size, 1), 0),
+                    )
+                ),
+                norm_f(
+                    Conv2d(
+                        1024,
+                        1024,
+                        (kernel_size, 1),
+                        1,
+                        padding=(get_padding(kernel_size, 1), 0),
+                    )
+                ),
+            ]
+        )
         self.conv_post = norm_f(Conv2d(1024, 1, (3, 1), 1, padding=(1, 0)))
 
     def forward(self, x):
@@ -327,7 +429,7 @@ class DiscriminatorP(torch.nn.Module):
 
         # 1d to 2d
         b, c, t = x.shape
-        if t % self.period != 0: # pad first
+        if t % self.period != 0:  # pad first
             n_pad = self.period - (t % self.period)
             x = F.pad(x, (0, n_pad), "reflect")
             t = t + n_pad
@@ -348,14 +450,16 @@ class DiscriminatorS(torch.nn.Module):
     def __init__(self, use_spectral_norm=False):
         super(DiscriminatorS, self).__init__()
         norm_f = weight_norm if use_spectral_norm == False else spectral_norm
-        self.convs = nn.ModuleList([
-            norm_f(Conv1d(1, 16, 15, 1, padding=7)),
-            norm_f(Conv1d(16, 64, 41, 4, groups=4, padding=20)),
-            norm_f(Conv1d(64, 256, 41, 4, groups=16, padding=20)),
-            norm_f(Conv1d(256, 1024, 41, 4, groups=64, padding=20)),
-            norm_f(Conv1d(1024, 1024, 41, 4, groups=256, padding=20)),
-            norm_f(Conv1d(1024, 1024, 5, 1, padding=2)),
-        ])
+        self.convs = nn.ModuleList(
+            [
+                norm_f(Conv1d(1, 16, 15, 1, padding=7)),
+                norm_f(Conv1d(16, 64, 41, 4, groups=4, padding=20)),
+                norm_f(Conv1d(64, 256, 41, 4, groups=16, padding=20)),
+                norm_f(Conv1d(256, 1024, 41, 4, groups=64, padding=20)),
+                norm_f(Conv1d(1024, 1024, 41, 4, groups=256, padding=20)),
+                norm_f(Conv1d(1024, 1024, 5, 1, padding=2)),
+            ]
+        )
         self.conv_post = norm_f(Conv1d(1024, 1, 3, 1, padding=1))
 
     def forward(self, x):
@@ -375,10 +479,12 @@ class DiscriminatorS(torch.nn.Module):
 class MultiPeriodDiscriminator(torch.nn.Module):
     def __init__(self, use_spectral_norm=False):
         super(MultiPeriodDiscriminator, self).__init__()
-        periods = [2,3,5,7,11]
+        periods = [2, 3, 5, 7, 11]
 
         discs = [DiscriminatorS(use_spectral_norm=use_spectral_norm)]
-        discs = discs + [DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods]
+        discs = discs + [
+            DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods
+        ]
         self.discriminators = nn.ModuleList(discs)
 
     def forward(self, y, y_hat):
@@ -397,105 +503,123 @@ class MultiPeriodDiscriminator(torch.nn.Module):
         return y_d_rs, y_d_gs, fmap_rs, fmap_gs
 
 
-
 class SynthesizerTrn(nn.Module):
-  """
-  Synthesizer for Training
-  """
+    """
+    Synthesizer for Training
+    """
 
-  def __init__(self, 
-    spec_channels,
-    segment_size,
-    inter_channels,
-    hidden_channels,
-    filter_channels,
-    n_heads,
-    n_layers,
-    kernel_size,
-    p_dropout,
-    resblock, 
-    resblock_kernel_sizes, 
-    resblock_dilation_sizes, 
-    upsample_rates, 
-    upsample_initial_channel, 
-    upsample_kernel_sizes,
-    n_speakers=0,
-    gin_channels=0,
-    use_sdp=True,
-    **kwargs):
-
-    super().__init__()
-    self.spec_channels = spec_channels
-    self.inter_channels = inter_channels
-    self.hidden_channels = hidden_channels
-    self.filter_channels = filter_channels
-    self.n_heads = n_heads
-    self.n_layers = n_layers
-    self.kernel_size = kernel_size
-    self.p_dropout = p_dropout
-    self.resblock = resblock
-    self.resblock_kernel_sizes = resblock_kernel_sizes
-    self.resblock_dilation_sizes = resblock_dilation_sizes
-    self.upsample_rates = upsample_rates
-    self.upsample_initial_channel = upsample_initial_channel
-    self.upsample_kernel_sizes = upsample_kernel_sizes
-    self.segment_size = segment_size
-    self.n_speakers = n_speakers
-    self.gin_channels = gin_channels
-
-    self.use_sdp = use_sdp
-
-    self.enc_p = TextEncoder(
+    def __init__(
+        self,
+        spec_channels,
+        segment_size,
         inter_channels,
         hidden_channels,
         filter_channels,
         n_heads,
         n_layers,
         kernel_size,
-        p_dropout)
-    self.dec = Generator(inter_channels, resblock, resblock_kernel_sizes, resblock_dilation_sizes, upsample_rates, upsample_initial_channel, upsample_kernel_sizes, gin_channels=gin_channels)
-    self.enc_q = PosteriorEncoder(spec_channels, inter_channels, hidden_channels, 5, 1, 16, gin_channels=gin_channels)
-    self.flow = ResidualCouplingBlock(inter_channels, hidden_channels, 5, 1, 4, gin_channels=gin_channels)
+        p_dropout,
+        resblock,
+        resblock_kernel_sizes,
+        resblock_dilation_sizes,
+        upsample_rates,
+        upsample_initial_channel,
+        upsample_kernel_sizes,
+        n_speakers=0,
+        gin_channels=0,
+        use_sdp=True,
+        **kwargs
+    ):
 
-    if n_speakers > 1:
-      self.emb_g = nn.Embedding(n_speakers, gin_channels)
+        super().__init__()
+        self.spec_channels = spec_channels
+        self.inter_channels = inter_channels
+        self.hidden_channels = hidden_channels
+        self.filter_channels = filter_channels
+        self.n_heads = n_heads
+        self.n_layers = n_layers
+        self.kernel_size = kernel_size
+        self.p_dropout = p_dropout
+        self.resblock = resblock
+        self.resblock_kernel_sizes = resblock_kernel_sizes
+        self.resblock_dilation_sizes = resblock_dilation_sizes
+        self.upsample_rates = upsample_rates
+        self.upsample_initial_channel = upsample_initial_channel
+        self.upsample_kernel_sizes = upsample_kernel_sizes
+        self.segment_size = segment_size
+        self.n_speakers = n_speakers
+        self.gin_channels = gin_channels
 
-  def forward(self, x, x_lengths, xt, xt_lengths, f0, f0_lengths, y, y_lengths, sid=None):
-    x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, xt, xt_lengths, f0, f0_lengths)
-    if self.n_speakers > 0:
-      g = self.emb_g(sid).unsqueeze(-1) # [b, h, 1]
-    else:
-      g = None
+        self.use_sdp = use_sdp
 
-    z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=g)
-    z_p = self.flow(z, y_mask, g=g)
+        self.enc_p = TextEncoder(
+            inter_channels,
+            hidden_channels,
+            filter_channels,
+            n_heads,
+            n_layers,
+            kernel_size,
+            p_dropout,
+        )
+        self.dec = Generator(
+            inter_channels,
+            resblock,
+            resblock_kernel_sizes,
+            resblock_dilation_sizes,
+            upsample_rates,
+            upsample_initial_channel,
+            upsample_kernel_sizes,
+            gin_channels=gin_channels,
+        )
+        self.enc_q = PosteriorEncoder(
+            spec_channels,
+            inter_channels,
+            hidden_channels,
+            5,
+            1,
+            16,
+            gin_channels=gin_channels,
+        )
+        self.flow = ResidualCouplingBlock(
+            inter_channels, hidden_channels, 5, 1, 4, gin_channels=gin_channels
+        )
 
-    # expand prior
-    # m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(1, 2)
-    # logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(1, 2)
+        if n_speakers > 1:
+            self.emb_g = nn.Embedding(n_speakers, gin_channels)
 
-    z_slice, ids_slice = commons.rand_slice_segments(z, y_lengths, self.segment_size)
-    o = self.dec(z_slice, g=g)
-    return o, ids_slice, x_mask, y_mask, (z, z_p, m_p, logs_p, m_q, logs_q)
+    def forward(
+        self, phone, phone_lengths, score, pitch, slurs, y, y_lengths, sid=None
+    ):
+        x, m_p, logs_p, x_mask = self.enc_p(phone, score, pitch, slurs, phone_lengths)
+        if self.n_speakers > 0:
+            g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
+        else:
+            g = None
 
-  def infer(self, x, x_lengths, xt, xt_lengths, f0, f0_lengths, sid=None, noise_scale=1, length_scale=1, noise_scale_w=1., max_len=None):
-    x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, xt, xt_lengths, f0, f0_lengths)
-    if self.n_speakers > 0:
-      g = self.emb_g(sid).unsqueeze(-1) # [b, h, 1]
-    else:
-      g = None
+        z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=g)
+        z_p = self.flow(z, y_mask, g=g)
 
-    # m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(1, 2) # [b, t', t], [b, t, d] -> [b, d, t']
-    # logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(1, 2) # [b, t', t], [b, t, d] -> [b, d, t']
+        z_slice, ids_slice = commons.rand_slice_segments(
+            z, y_lengths, self.segment_size
+        )
+        o = self.dec(z_slice, g=g)
+        return o, ids_slice, x_mask, y_mask, (z, z_p, m_p, logs_p, m_q, logs_q)
 
-    z_p = m_p
-    z = self.flow(z_p, x_mask, g=g, reverse=True)
-    o = self.dec((z * x_mask)[:,:,:max_len], g=g)
-    return o, x_mask, (z, z_p, m_p, logs_p)
+    def infer(self, phone, phone_lengths, score, pitch, slurs, sid=None, max_len=None):
+        x, m_p, logs_p, x_mask = self.enc_p(phone, score, pitch, slurs, phone_lengths)
+        if self.n_speakers > 0:
+            g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
+        else:
+            g = None
 
-  def voice_conversion(self, y, y_lengths):
-    z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=None)
-    z_p = self.flow(z, y_mask, g=None)
-    z_hat = self.flow(z_p, y_mask, g=None, reverse=True)
-    o_hat = self.dec(z_hat * y_mask, g=None)
-    return o_hat, y_mask, (z, z_p, z_hat)
+        z_p = m_p
+        z = self.flow(z_p, x_mask, g=g, reverse=True)
+        o = self.dec((z * x_mask)[:, :, :max_len], g=g)
+        return o, x_mask, (z, z_p, m_p, logs_p)
+
+    def voice_conversion(self, y, y_lengths):
+        z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=None)
+        z_p = self.flow(z, y_mask, g=None)
+        z_hat = self.flow(z_p, y_mask, g=None, reverse=True)
+        o_hat = self.dec(z_hat * y_mask, g=None)
+        return o_hat, y_mask, (z, z_p, z_hat)

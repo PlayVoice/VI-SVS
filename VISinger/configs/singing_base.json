@@ -8,7 +8,7 @@
     "betas": [0.8, 0.99],
     "eps": 1e-9,
     "batch_size": 16,
-    "fp16_run": true,
+    "fp16_run": false,
     "lr_decay": 0.999875,
     "segment_size": 8192,
     "init_lr_ratio": 1,
@@ -30,8 +30,8 @@
     "n_speakers": 0
   },
   "model": {
-    "inter_channels": 256,
-    "hidden_channels": 256,
+    "inter_channels": 192,
+    "hidden_channels": 192,
     "filter_channels": 768,
     "n_heads": 2,
     "n_layers": 6,

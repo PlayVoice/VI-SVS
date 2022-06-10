@@ -1,6 +1,6 @@
 import os
+import sys
 import numpy as np
-import matplotlib.pyplot as plt
 
 from scipy.io import wavfile
 from time import *
@@ -8,8 +8,6 @@ from time import *
 import torch
 import utils
 from models import SynthesizerTrn
-from prepare.data_vits import SingInput
-from prepare.data_vits import FeatureInput
 
 
 def save_wav(wav, path, rate):
@@ -30,54 +28,33 @@ _ = utils.load_checkpoint("./logs/singing_base/G_160000.pth", net_g, None)
 net_g.eval()
 # net_g.remove_weight_norm()
 
-singInput = SingInput(16000, 256)
-featureInput = FeatureInput("../VISinger_data/wav_dump_16k/", 16000, 256)
-
 # check directory existence
 if not os.path.exists("./singing_out"):
     os.makedirs("./singing_out")
 
-fo = open("./vsinging_infer.txt", "r+")
-while True:
-    try:
-        message = fo.readline().strip()
-    except Exception as e:
-        print("nothing of except:", e)
-        break
-    if message == None:
-        break
-    if message == "":
-        break
-    print(message)
-    (
-        file,
-        labels_ids,
-        labels_frames,
-        scores_ids,
-        scores_dur,
-        labels_slr,
-        labels_uvs,
-    ) = singInput.parseInput(message)
-    labels_ids = singInput.expandInput(labels_ids, labels_frames)
-    labels_uvs = singInput.expandInput(labels_uvs, labels_frames)
-    labels_slr = singInput.expandInput(labels_slr, labels_frames)
-    scores_ids = singInput.expandInput(scores_ids, labels_frames)
-    scores_pit = singInput.scorePitch(scores_ids)
-    # elments by elments
-    scores_pit_ = scores_pit * labels_uvs
-    scores_pit = singInput.smoothPitch(scores_pit_)
-
-    fig = plt.figure(figsize=(12, 6))
-    plt.plot(scores_pit_.T, "g")
-    plt.plot(scores_pit.T, "r")
-    plt.savefig(f"./singing_out/{file}_f0_.png", format="png")
-    plt.close(fig)
-
-    phone = torch.LongTensor(labels_ids)
-    score = torch.LongTensor(scores_ids)
-    slurs = torch.LongTensor(labels_uvs)
-    pitch = featureInput.coarse_f0(scores_pit)
+idxs = [
+    "2001000001",
+    "2001000002",
+    "2001000003",
+    "2001000004",
+    "2001000005",
+    "2001000006",
+    "2051001912",
+    "2051001913",
+    "2051001914",
+    "2051001915",
+    "2051001916",
+    "2051001917",
+]
+for idx in idxs:
+    phone = np.load(f"../VISinger_data/label_vits/{idx}_label.npy")
+    score = np.load(f"../VISinger_data/label_vits/{idx}_score.npy")
+    pitch = np.load(f"../VISinger_data/label_vits/{idx}_pitch.npy")
+    slurs = np.load(f"../VISinger_data/label_vits/{idx}_slurs.npy")
+    phone = torch.LongTensor(phone)
+    score = torch.LongTensor(score)
     pitch = torch.LongTensor(pitch)
+    slurs = torch.LongTensor(slurs)
 
     phone_lengths = phone.size()[0]
 
@@ -100,7 +77,7 @@ while True:
     data_len = len(audio) / 16000
     print("Wave Time (Seconds):", data_len)
     print("Real time Rate (%):", run_time / data_len)
-    save_wav(audio, f"./singing_out/{file}.wav", hps.data.sampling_rate)
-fo.close()
+    save_wav(audio, f"./singing_out/singing_{idx}.wav", hps.data.sampling_rate)
+
 # can be deleted
 os.system("chmod 777 ./singing_out -R")

@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 
 from scipy.io import wavfile
 from time import *
@@ -37,7 +36,11 @@ featureInput = FeatureInput("../VISinger_data/wav_dump_16k/", 16000, 256)
 if not os.path.exists("./singing_out"):
     os.makedirs("./singing_out")
 
-fo = open("./vsinging_infer.txt", "r+")
+fo = open("./vsinging_song_midi.txt", "r+")
+song_rate = 16000
+song_time = fo.readline().strip().split("|")[1]
+song_length = int(song_rate * (float(song_time) + 30))
+song_data = np.zeros(song_length, dtype="float32")
 while True:
     try:
         message = fo.readline().strip()
@@ -48,31 +51,25 @@ while True:
         break
     if message == "":
         break
-    print(message)
     (
-        file,
+        item_indx,
+        item_time,
         labels_ids,
         labels_frames,
         scores_ids,
         scores_dur,
         labels_slr,
         labels_uvs,
-    ) = singInput.parseInput(message)
+    ) = singInput.parseSong(message)
     labels_ids = singInput.expandInput(labels_ids, labels_frames)
     labels_uvs = singInput.expandInput(labels_uvs, labels_frames)
     labels_slr = singInput.expandInput(labels_slr, labels_frames)
     scores_ids = singInput.expandInput(scores_ids, labels_frames)
     scores_pit = singInput.scorePitch(scores_ids)
     # elments by elments
-    scores_pit_ = scores_pit * labels_uvs
-    scores_pit = singInput.smoothPitch(scores_pit_)
-
-    fig = plt.figure(figsize=(12, 6))
-    plt.plot(scores_pit_.T, "g")
-    plt.plot(scores_pit.T, "r")
-    plt.savefig(f"./singing_out/{file}_f0_.png", format="png")
-    plt.close(fig)
-
+    scores_pit = scores_pit * labels_uvs
+    scores_pit = singInput.smoothPitch(scores_pit)
+    scores_pit = scores_pit * labels_uvs
     phone = torch.LongTensor(labels_ids)
     score = torch.LongTensor(scores_ids)
     slurs = torch.LongTensor(labels_uvs)
@@ -100,7 +97,14 @@ while True:
     data_len = len(audio) / 16000
     print("Wave Time (Seconds):", data_len)
     print("Real time Rate (%):", run_time / data_len)
-    save_wav(audio, f"./singing_out/{file}.wav", hps.data.sampling_rate)
+    save_wav(audio, f"./singing_out/{item_indx}.wav", hps.data.sampling_rate)
+    # wav
+    item_start = int(song_rate * float(item_time))
+    item_end = item_start + len(audio)
+    song_data[item_start:item_end] = audio
+# out of for
+song_data = np.array(song_data, dtype="float32")
+save_wav(song_data, f"./singing_out/_song.wav", hps.data.sampling_rate)
 fo.close()
 # can be deleted
 os.system("chmod 777 ./singing_out -R")
