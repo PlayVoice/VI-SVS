@@ -42,7 +42,7 @@ python vsinging_debug.py
 
 python vsinging_infer.py
 
-3,完整歌曲合成(使用release模型)
+3,完整歌曲合成（**使用release模型**）
 
 pyton vsinging_song.py
 
