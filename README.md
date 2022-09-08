@@ -9,9 +9,7 @@ https://github.com/MoonInTheRiver/DiffSinger
 https://wenet.org.cn/opencpop/
 
 # 采样率转换
-python wave_16k.py
---wavs
---wav_dump_16k
+使用16K节约内存，方便模型修改
 
 # 数据预处理
 cd VISinger/
@@ -22,21 +20,17 @@ python prepare/data_vits.py
 
 输出
 
-1,../VISinger_data/label_vits/XXX._label.npy|XXX_score.npy|XXX_pitch.npy|XXX_slurs.npy
+1,生成文件../VISinger_data/label_vits/XXX._label.npy|XXX_score.npy|XXX_pitch.npy|XXX_slurs.npy
 
-2,filelists/vits_file.txt 内容格式：wave path|label path|score path|pitch path|slurs path;
-
-python prepare/preprocess.py
+2,生成文件filelists/vits_file.txt; 内容格式：wave path|label path|score path|pitch path|slurs path;
 
 训练集随机打乱
 
-验证集按排序
+python prepare/preprocess.py
 
 # VITS训练
 
-使用16K节约内存，方便模型修改
-
-CUDA_VISIBLE_DEVICES=0 python train.py -c configs/singing_base.json -m singing_base 2>exit_error.log;cat exit_error.log
+python train.py -c configs/singing_base.json -m singing_base
 
 # 测试验证
 
