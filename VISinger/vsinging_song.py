@@ -26,6 +26,7 @@ net_g = Synthesizer(
 )
 
 # _ = utils.load_checkpoint("./logs/singing_base/G_160000.pth", net_g, None)
+# net_g.remove_weight_norm()
 # torch.save(net_g, "visinger.pth")
 net_g = torch.load("visinger.pth", map_location="cpu")
 net_g.eval().cuda()
@@ -74,7 +75,7 @@ while True:
     # scores_pit = scores_pit * labels_uvs
     phone = torch.LongTensor(labels_ids)
     score = torch.LongTensor(scores_ids)
-    slurs = torch.LongTensor(labels_uvs)
+    slurs = torch.LongTensor(labels_slr)
     pitch = featureInput.coarse_f0(scores_pit)
     pitch = torch.LongTensor(pitch)
 
