@@ -6,7 +6,7 @@ from time import *
 
 import torch
 import utils
-from models import SynthesizerTrn
+from models import Synthesizer
 from prepare.data_vits import SingInput
 from prepare.data_vits import FeatureInput
 
@@ -19,14 +19,16 @@ def save_wav(wav, path, rate):
 # define model and load checkpoint
 hps = utils.get_hparams_from_file("./configs/singing_base.json")
 
-net_g = SynthesizerTrn(
+net_g = Synthesizer(
     hps.data.filter_length // 2 + 1,
     hps.train.segment_size // hps.data.hop_length,
     **hps.model,
-).cuda()
+)
 
-_ = utils.load_checkpoint("./logs/singing_base/G_160000.pth", net_g, None)
-net_g.eval()
+# _ = utils.load_checkpoint("./logs/singing_base/G_160000.pth", net_g, None)
+# torch.save(net_g, "visinger.pth")
+net_g = torch.load("visinger.pth", map_location="cpu")
+net_g.eval().cuda()
 # net_g.remove_weight_norm()
 
 singInput = SingInput(16000, 256)
@@ -68,8 +70,8 @@ while True:
     scores_pit = singInput.scorePitch(scores_ids)
     # elments by elments
     scores_pit = scores_pit * labels_uvs
-    scores_pit = singInput.smoothPitch(scores_pit)
-    scores_pit = scores_pit * labels_uvs
+    # scores_pit = singInput.smoothPitch(scores_pit)
+    # scores_pit = scores_pit * labels_uvs
     phone = torch.LongTensor(labels_ids)
     score = torch.LongTensor(scores_ids)
     slurs = torch.LongTensor(labels_uvs)
