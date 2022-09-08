@@ -42,15 +42,11 @@ python vsinging_debug.py
 
 python vsinging_infer.py
 
-3,完整歌曲合成
+3,完整歌曲合成(使用release模型)
 
 pyton vsinging_song.py
 
-4,后验编码器验证
-
-python vsinging_vae_debug.py -s ../VISinger_data/wav_dump_16k/*.wav
-
-5,本项目完成冻结,F0的问题可以额外训练F0预测器,或者使用UTAU绘制pit曲线
+4,F0的问题可以额外训练F0预测器,或者使用UTAU绘制pit曲线
 
 
 ![LOSS值](/resource/vising_loss.png)
