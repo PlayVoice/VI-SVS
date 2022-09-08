@@ -612,7 +612,7 @@ class SynthesizerTrn(nn.Module):
         else:
             g = None
 
-        z_p = m_p
+        z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * 0.3
         z = self.flow(z_p, x_mask, g=g, reverse=True)
         o = self.dec((z * x_mask)[:, :, :max_len], g=g)
         return o, x_mask, (z, z_p, m_p, logs_p)
