@@ -623,3 +623,81 @@ class SynthesizerTrn(nn.Module):
         z_hat = self.flow(z_p, y_mask, g=None, reverse=True)
         o_hat = self.dec(z_hat * y_mask, g=None)
         return o_hat, y_mask, (z, z_p, z_hat)
+
+
+class Synthesizer(nn.Module):
+    """
+    Synthesizer for Training
+    """
+
+    def __init__(
+        self,
+        spec_channels,
+        segment_size,
+        inter_channels,
+        hidden_channels,
+        filter_channels,
+        n_heads,
+        n_layers,
+        kernel_size,
+        p_dropout,
+        resblock,
+        resblock_kernel_sizes,
+        resblock_dilation_sizes,
+        upsample_rates,
+        upsample_initial_channel,
+        upsample_kernel_sizes,
+        n_speakers=0,
+        gin_channels=0,
+        use_sdp=True,
+        **kwargs
+    ):
+
+        super().__init__()
+        self.spec_channels = spec_channels
+        self.inter_channels = inter_channels
+        self.hidden_channels = hidden_channels
+        self.filter_channels = filter_channels
+        self.n_heads = n_heads
+        self.n_layers = n_layers
+        self.kernel_size = kernel_size
+        self.p_dropout = p_dropout
+        self.resblock = resblock
+        self.resblock_kernel_sizes = resblock_kernel_sizes
+        self.resblock_dilation_sizes = resblock_dilation_sizes
+        self.upsample_rates = upsample_rates
+        self.upsample_initial_channel = upsample_initial_channel
+        self.upsample_kernel_sizes = upsample_kernel_sizes
+        self.segment_size = segment_size
+        self.n_speakers = n_speakers
+        self.gin_channels = gin_channels
+
+        self.enc_p = TextEncoder(
+            inter_channels,
+            hidden_channels,
+            filter_channels,
+            n_heads,
+            n_layers,
+            kernel_size,
+            p_dropout,
+        )
+        self.dec = Generator(
+            inter_channels,
+            resblock,
+            resblock_kernel_sizes,
+            resblock_dilation_sizes,
+            upsample_rates,
+            upsample_initial_channel,
+            upsample_kernel_sizes,
+            gin_channels=gin_channels,
+        )
+        self.flow = ResidualCouplingBlock(
+            inter_channels, hidden_channels, 5, 1, 4, gin_channels=gin_channels
+        )
+
+    def infer(self, phone, phone_lengths, score, pitch, slurs, sid=None, max_len=None):
+        x, m_p, logs_p, x_mask = self.enc_p(phone, score, pitch, slurs, phone_lengths)
+        z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * 0.3
+        z = self.flow(z_p, x_mask, g=None, reverse=True)
+        o = self.dec((z * x_mask)[:, :, :max_len], g=None)
+        return o, x_mask, (z, z_p, m_p, logs_p)
