@@ -75,7 +75,7 @@ while True:
 
     phone = torch.LongTensor(labels_ids)
     score = torch.LongTensor(scores_ids)
-    slurs = torch.LongTensor(labels_uvs)
+    slurs = torch.LongTensor(labels_slr)
     pitch = featureInput.coarse_f0(scores_pit)
     pitch = torch.LongTensor(pitch)
 
