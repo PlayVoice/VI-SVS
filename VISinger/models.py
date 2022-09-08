@@ -701,3 +701,7 @@ class Synthesizer(nn.Module):
         z = self.flow(z_p, x_mask, g=None, reverse=True)
         o = self.dec((z * x_mask)[:, :, :max_len], g=None)
         return o, x_mask, (z, z_p, m_p, logs_p)
+
+    def remove_weight_norm(self):
+        self.flow.remove_weight_norm()
+        self.dec.remove_weight_norm()
