@@ -1,5 +1,6 @@
 # Init
-Use VITS and Opencpop to develop singing voice synthesis; Maybe it will be VISinger.
+Use VITS and Opencpop to develop singing voice synthesis; 
+Different from VISinger, It is just VITS without MAS and DurationPredictor.
 
 # 本项目基于
 https://github.com/jaywalnut310/vits
