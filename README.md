@@ -60,3 +60,6 @@ pyton vsinging_song.py
 # 样例音频
 
 [vits_singing_样例.wav](/resource/vising_sample.wav)
+
+# 16K To 48K
+https://github.com/brentspell/hifi-gan-bwe
