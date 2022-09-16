@@ -9,9 +9,6 @@ https://github.com/MoonInTheRiver/DiffSinger
 
 https://wenet.org.cn/opencpop/
 
-# 采样率转换
-使用16K节约内存，方便模型修改
-
 # 数据预处理
 cd VISinger/
 
@@ -19,13 +16,9 @@ export PYTHONPATH=.
 
 python prepare/data_vits.py
 
-输出
+      生成文件../VISinger_data/label_vits/XXX._label.npy|XXX_score.npy|XXX_pitch.npy|XXX_slurs.npy
 
-1,生成文件../VISinger_data/label_vits/XXX._label.npy|XXX_score.npy|XXX_pitch.npy|XXX_slurs.npy
-
-2,生成文件filelists/vits_file.txt; 内容格式：wave path|label path|score path|pitch path|slurs path;
-
-训练集随机打乱
+      生成文件filelists/vits_file.txt; 内容格式：wave path|label path|score path|pitch path|slurs path;
 
 python prepare/preprocess.py
 
@@ -61,5 +54,5 @@ pyton vsinging_song.py
 
 [vits_singing_样例.wav](/resource/vising_sample.wav)
 
-# 16K To 48K
+# AI修复
 https://github.com/brentspell/hifi-gan-bwe
