@@ -10,8 +10,6 @@ https://github.com/MoonInTheRiver/DiffSinger
 https://wenet.org.cn/opencpop/
 
 # 数据预处理
-cd VISinger/
-
 export PYTHONPATH=.
 
 python prepare/data_vits.py
