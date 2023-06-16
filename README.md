@@ -1,7 +1,11 @@
 <div align="center">
 <h1> Variational Inference with adversarial learning for end-to-end Singing Voice Synthesis </h1>
 
-Different from VISinger, It is just VITS without MAS and DurationPredictor. 迭代升级中~~~基于nsf-bigvgan声码器和diffusion基音预测
+Different from VISinger, It is just VITS without MAS and DurationPredictor. 
+
+迭代升级中~~~
+
+基于nsf-bigvgan声码器和diffusion基音预测器
 </div>
 
 # 训练步骤
