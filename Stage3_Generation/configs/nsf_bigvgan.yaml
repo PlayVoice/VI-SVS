@@ -1,0 +1,60 @@
+data:
+  train_file: 'files/train.txt'
+  val_file: 'files/valid.txt'
+#############################
+train:
+  num_workers: 4
+  batch_size: 8
+  optimizer: 'adam'
+  seed: 1234
+  adam:
+    lr: 0.0002
+    beta1: 0.8
+    beta2: 0.99
+  mel_lamb: 5
+  stft_lamb: 2.5
+  pretrain: ''
+  lora: False
+#############################
+audio:
+  n_mel_channels: 100
+  segment_length: 12800 # Should be multiple of 320
+  filter_length: 1024
+  hop_length: 320 # WARNING: this can't be changed.
+  win_length: 1024
+  sampling_rate: 32000
+  mel_fmin: 40.0
+  mel_fmax: 16000.0
+#############################
+gen:
+  mel_channels: 100
+  upsample_rates: [5,4,2,2,2,2]
+  upsample_kernel_sizes: [15,8,4,4,4,4]
+  upsample_initial_channel: 320
+  resblock_kernel_sizes: [3,7,11]
+  resblock_dilation_sizes: [[1,3,5], [1,3,5], [1,3,5]]
+#############################
+mpd:
+  periods: [2,3,5,7,11]
+  kernel_size: 5
+  stride: 3
+  use_spectral_norm: False
+  lReLU_slope: 0.2
+#############################
+mrd:
+  resolutions: "[(1024, 120, 600), (2048, 240, 1200), (4096, 480, 2400), (512, 50, 240)]" # (filter_length, hop_length, win_length)
+  use_spectral_norm: False
+  lReLU_slope: 0.2
+#############################
+dist_config:
+  dist_backend: "nccl"
+  dist_url: "tcp://localhost:54321"
+  world_size: 1
+#############################
+log:
+  info_interval: 100
+  eval_interval: 1000
+  save_interval: 10000
+  num_audio: 6
+  pth_dir: 'chkpt'
+  log_dir: 'logs'

@@ -1,0 +1,7 @@
+pyworld
+librosa
+omegaconf
+tensorboard
+matplotlib
+tensorboard
+torchcrepe
