@@ -48,7 +48,7 @@ data_svs/labels.txt，内容格式：wave path|label path|score path|pitch path|
 
 > python svs_export.py --config configs/singing_base.yaml --model chkpt/vits_svs/vits_svs_****.pt
 
-- 1 推理验证:F0根据规则生成
+- 1 推理验证: F0根据乐谱生成，**基于Diffusion的音高预测还未完成**
 
 > python svs_infer.py --config configs/singing_base.yaml --model svs_opencpop.pt 
 
@@ -67,9 +67,9 @@ https://github.com/NVIDIA/BigVGAN
 
 https://github.com/mindslab-ai/univnet
 
-https://github.com/shivammehta25/Matcha-TTS
-
 https://github.com/PlayVoice/so-vits-svc-5.0
+
+https://github.com/shivammehta25/Matcha-TTS
 
 [RoFormer: Enhanced Transformer with rotary position embedding](https://arxiv.org/abs/2104.09864)
 
