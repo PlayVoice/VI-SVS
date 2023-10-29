@@ -52,14 +52,11 @@ data_svs/labels.txt，内容格式：wave path|label path|score path|pitch path|
 
 > python svs_infer.py --config configs/singing_base.yaml --model svs_opencpop.pt 
 
-- 2 完整歌曲合成（[使用release模型](https://github.com/PlayVoice/VI-SVS/releases/tag/0.0.1)）
+- 2 完整歌曲合成（[使用release模型](https://github.com/PlayVoice/VI-SVS/releases/tag/0.0.2)）
 
 > python svs_song.py --config configs/singing_base.yaml --model svs_opencpop.pt
 
-- 3 TODU Diffusion Pitch
-
-![LOSS值](/resource/vising_loss.png)
-![MEL谱](/resource/vising_mel.png)
+- 3 TODO **Diffusion Pitch**
 
 # 参考项目
 https://github.com/jaywalnut310/vits
