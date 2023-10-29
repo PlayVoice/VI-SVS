@@ -5,48 +5,61 @@ Different from VISinger, It is just VITS without MAS and DurationPredictor.
 
 迭代升级中~~~
 
-基于nsf-bigvgan声码器和diffusion基音预测器
 </div>
 
 # 训练步骤
-- 1 设置路径
-> export PYTHONPATH=.
 
-- 2 数据处理
-> python prepare/data_vits.py
+- 1 下载数据 segments.zip，并解压
 
-      生成文件../VISinger_data/label_vits/XXX._label.npy|XXX_score.npy|XXX_pitch.npy|XXX_slurs.npy
+```
+segments
+|-- test.txt
+|-- train.txt
+|-- transcriptions.txt
+`-- wavs
+    |-- 2001000001.wav
+    |-- 2001000002.wav
+    |-- 2001000003.wav
+```
 
-      生成文件filelists/vits_file.txt; 内容格式：wave path|label path|score path|pitch path|slurs path;
+- 2 转换采样率: 本项目采用32KHz
 
-- 3 训练索引
-> python prepare/preprocess.py
+> python util/resample.py -w segments/wavs/ -o data_svs/wavs -s 32000 
+
+- 3 生成数据标注
+
+> python util/generate_label.py --config configs/singing_base.json --data data_svs/ --file segments/transcriptions.txt
+
+data_svs/labels.txt，内容格式：wave path|label path|score path|pitch path|slurs path
+
+- 3 划分训练索引
+
+> python util/generate_label.py --file data_svs/labels.txt
+
+生成 filelists/singing_train.txt 和 filelists/singing_valid.txt
 
 - 4 启动训练
-> python train.py -c configs/singing_base.json -m singing_base
+
+> python svs_train.py -c configs/singing_base.yaml -n vits_svs
 
 # 推理验证
 
-- 1 训练集生成验证:F0根据音频提取
+- 0 模型导出
 
-> python vsinging_debug.py
+> python svs_export.py --config configs/singing_base.yaml --model chkpt/vits_svs/vits_svs_****.pt
 
-- 2 推理验证:F0根据规则生成
+- 1 推理验证:F0根据规则生成
 
-> python vsinging_infer.py
+> python svs_infer.py --config configs/singing_base.yaml --model svs_opencpop.pt 
 
-- 3 完整歌曲合成（[使用release模型](https://github.com/PlayVoice/VI-SVS/releases/tag/0.0.1)）
+- 2 完整歌曲合成（[使用release模型](https://github.com/PlayVoice/VI-SVS/releases/tag/0.0.1)）
 
-> pyton vsinging_song.py
+> python svs_song.py --config configs/singing_base.yaml --model svs_opencpop.pt
 
-- 4 F0的问题可以额外训练F0预测器,或者使用UTAU绘制pit曲线
+- 3 TODU Diffusion Pitch
 
 ![LOSS值](/resource/vising_loss.png)
 ![MEL谱](/resource/vising_mel.png)
-
-# 样例音频
-
-[vits_singing_样例.wav](/resource/vising_sample.wav)
 
 # 参考项目
 https://github.com/jaywalnut310/vits
