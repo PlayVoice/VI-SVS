@@ -69,5 +69,7 @@ https://github.com/mindslab-ai/univnet
 
 https://github.com/shivammehta25/Matcha-TTS
 
+https://github.com/PlayVoice/so-vits-svc-5.0
+
 [RoFormer: Enhanced Transformer with rotary position embedding](https://arxiv.org/abs/2104.09864)
 
