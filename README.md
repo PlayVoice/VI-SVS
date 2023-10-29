@@ -66,3 +66,11 @@ https://github.com/jaywalnut310/vits
 
 https://wenet.org.cn/opencpop/
 
+https://github.com/NVIDIA/BigVGAN
+
+https://github.com/mindslab-ai/univnet
+
+https://github.com/shivammehta25/Matcha-TTS
+
+[RoFormer: Enhanced Transformer with rotary position embedding](https://arxiv.org/abs/2104.09864)
+
