@@ -5,7 +5,7 @@ logging.basicConfig(level=logging.INFO)  # ERROR & INFO
 import argparse
 import numpy as np
 
-from vits import utils
+from omegaconf import OmegaConf
 from util import SingInput, FeatureInput
 
 
@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('--file', type=str, required=True)
     args = parser.parse_args()
 
-    hps = utils.get_hparams_from_file(args.config)
+    hps = OmegaConf.load(args.config)
 
     assert os.path.exists(args.file)
     assert os.path.exists(os.path.join(args.data, "wavs"))
