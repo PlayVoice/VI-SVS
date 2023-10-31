@@ -78,5 +78,7 @@ https://github.com/PlayVoice/so-vits-svc-5.0
 
 https://github.com/shivammehta25/Matcha-TTS
 
+https://github.com/MoonInTheRiver/DiffSinger
+
 [RoFormer: Enhanced Transformer with rotary position embedding](https://arxiv.org/abs/2104.09864)
 
