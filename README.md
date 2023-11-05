@@ -65,12 +65,23 @@ python svs_song.py --config configs/singing_base.yaml --model svs_opencpop.pt
 
 - 3 TODO **Diffusion Pitch**
 
-# 参考项目
-https://github.com/jaywalnut310/vits
+# 数据
 
 https://wenet.org.cn/opencpop/
 
+# 歌声合成参考
+
+https://github.com/SJTMusicTeam/Muskits
+
+https://github.com/MoonInTheRiver/DiffSinger
+
+[VISinger: Variational Inference with Adversarial Learning for End-to-End Singing Voice Synthesis](https://arxiv.org/abs/2110.08813)
+
+# 模型设计参考
+
 https://github.com/NVIDIA/BigVGAN
+
+https://github.com/jaywalnut310/vits
 
 https://github.com/mindslab-ai/univnet
 
@@ -78,7 +89,10 @@ https://github.com/PlayVoice/so-vits-svc-5.0
 
 https://github.com/shivammehta25/Matcha-TTS
 
-https://github.com/MoonInTheRiver/DiffSinger
-
 [RoFormer: Enhanced Transformer with rotary position embedding](https://arxiv.org/abs/2104.09864)
 
+# Diffusion Pitch （WIP）
+
+https://github.com/thuhcsi/DiffVar
+
+https://github.com/tonnetonne814/SiFi-VITS2-44100-Ja
