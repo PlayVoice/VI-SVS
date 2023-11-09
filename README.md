@@ -46,6 +46,11 @@ python util/generate_label.py --file data_svs/labels.txt
 python svs_train.py -c configs/singing_base.yaml -n vits_svs
 ```
 
+- 5 训练Pitch
+```
+python pit_train.py -c configs/singing_base.yaml -n pitch
+```
+
 # 推理验证
 
 - 0 模型导出
@@ -96,3 +101,5 @@ https://github.com/shivammehta25/Matcha-TTS
 https://github.com/thuhcsi/DiffVar
 
 https://github.com/tonnetonne814/SiFi-VITS2-44100-Ja
+
+[Grad-TTS: A Diffusion Probabilistic Model for Text-to-Speech](https://arxiv.org/abs/2105.06337)
