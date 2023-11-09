@@ -5,6 +5,10 @@ Different from VISinger, It is just VITS without MAS and DurationPredictor.
 
 迭代升级中~~~
 
+![VISinger](https://github.com/MaxMax2016/VI-SVS/assets/16432329/c76ca716-b230-4852-b8f0-2c3041af7072)
+
+![VI-SVS](https://github.com/MaxMax2016/VI-SVS/assets/16432329/128c0f33-4428-4b57-9cd3-b6237f53c1a4)
+
 </div>
 
 # 训练步骤
