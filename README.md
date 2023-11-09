@@ -125,6 +125,8 @@ https://github.com/shivammehta25/Matcha-TTS
 
 https://github.com/thuhcsi/DiffVar
 
+https://github.com/hayeong0/Diff-HierVC
+
 https://github.com/tonnetonne814/SiFi-VITS2-44100-Ja
 
 [Grad-TTS: A Diffusion Probabilistic Model for Text-to-Speech](https://arxiv.org/abs/2105.06337)
