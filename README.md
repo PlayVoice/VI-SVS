@@ -130,3 +130,6 @@ https://github.com/hayeong0/Diff-HierVC
 https://github.com/tonnetonne814/SiFi-VITS2-44100-Ja
 
 [Grad-TTS: A Diffusion Probabilistic Model for Text-to-Speech](https://arxiv.org/abs/2105.06337)
+
+# Diffusion Pitch of Diff-HierVC
+![DiffPitch](https://github.com/PlayVoice/VI-SVS/assets/16432329/055d75a4-7009-46c1-8603-65254cec47dd)
