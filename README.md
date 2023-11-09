@@ -3,7 +3,7 @@
 
 Different from VISinger, It is just VITS without MAS and DurationPredictor. 
 
-迭代升级中~~~
+作为一个用于学习的项目，就这样了：Pitch的预测是需要改进的地方
 
 ![VISinger](https://github.com/MaxMax2016/VI-SVS/assets/16432329/c76ca716-b230-4852-b8f0-2c3041af7072)
 
