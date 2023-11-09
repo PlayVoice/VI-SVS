@@ -11,6 +11,8 @@ Different from VISinger, It is just VITS without MAS and DurationPredictor.
 
 </div>
 
+**Pitch and Duration will be developed as add-on!**
+
 # 训练步骤
 
 - 1 下载数据 segments.zip，并解压
