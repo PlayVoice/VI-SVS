@@ -12,7 +12,6 @@ from vits import commons
 
 class TextEncoder(nn.Module):
     def __init__(self,
-                 out_channels,
                  hidden_channels,
                  filter_channels,
                  n_heads,
@@ -20,7 +19,6 @@ class TextEncoder(nn.Module):
                  kernel_size,
                  p_dropout):
         super().__init__()
-        self.out_channels = out_channels
         self.hidden_channels = hidden_channels
         self.emb_phone = nn.Embedding(63, hidden_channels)      # phone lables
         self.emb_score = nn.Embedding(128, hidden_channels)     # pitch notes
@@ -53,7 +51,7 @@ class TextEncoder(nn.Module):
 class PitchDiffusion(nn.Module):
     def __init__(self):
         super().__init__()
-        self.pit_encoder = TextEncoder(out_channels=192, hidden_channels=192, filter_channels=768, 
+        self.pit_encoder = TextEncoder(hidden_channels=192, filter_channels=768, 
                                        n_heads=2, n_layers=5, kernel_size=5, p_dropout=0.1)
         self.decoder = Diffusion(2, 64, 192, beta_min=0.05, beta_max=20.0, pe_scale=1000)
 
