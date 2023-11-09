@@ -64,7 +64,7 @@ python pit_train.py -c configs/singing_base.yaml -n pitch
 python svs_export.py --config configs/singing_base.yaml --model chkpt/vits_svs/vits_svs_****.pt
 ```
 
-- 1 推理验证: F0根据乐谱生成，**基于Diffusion的音高预测还未完成**
+- 1 推理验证: F0根据乐谱生成
 ```
 python svs_infer.py --config configs/singing_base.yaml --model svs_opencpop.pt
 ```
@@ -74,7 +74,26 @@ python svs_infer.py --config configs/singing_base.yaml --model svs_opencpop.pt
 python svs_song.py --config configs/singing_base.yaml --model svs_opencpop.pt
 ```
 
-- 3 TODO **Diffusion Pitch**
+# 推理验证，使用Pitch预测，效果不佳
+
+- 0 模型导出
+```
+python svs_export.py --config configs/singing_base.yaml --model chkpt/vits_svs/vits_svs_****.pt
+```
+
+```
+python pit_export.py --config configs/singing_base.yaml --model chkpt/pitch/pitch_****.pt
+```
+
+- 1 推理验证
+```
+python svs_infer_pitch.py --config configs/singing_base.yaml --model svs_opencpop.pt --pitch pit_opencpop.pt
+```
+
+- 2 完整歌曲合成（[使用release模型](https://github.com/PlayVoice/VI-SVS/releases/tag/0.0.2)）
+```
+python svs_song_pitch.py --config configs/singing_base.yaml --model svs_opencpop.pt --pitch pit_opencpop.pt
+```
 
 # 数据
 
@@ -102,7 +121,7 @@ https://github.com/shivammehta25/Matcha-TTS
 
 [RoFormer: Enhanced Transformer with rotary position embedding](https://arxiv.org/abs/2104.09864)
 
-# Diffusion Pitch （WIP）
+# Diffusion Pitch
 
 https://github.com/thuhcsi/DiffVar
 
