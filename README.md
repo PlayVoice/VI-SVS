@@ -69,7 +69,7 @@ python svs_export.py --config configs/singing_base.yaml --model chkpt/vits_svs/v
 python svs_infer.py --config configs/singing_base.yaml --model svs_opencpop.pt
 ```
 
-- 2 完整歌曲合成（[使用release模型](https://github.com/PlayVoice/VI-SVS/releases/tag/0.0.2)）
+- 2 完整歌曲合成（[使用release模型](https://github.com/PlayVoice/VI-SVS/releases/tag/0.0.3)）
 ```
 python svs_song.py --config configs/singing_base.yaml --model svs_opencpop.pt
 ```
@@ -90,7 +90,7 @@ python pit_export.py --config configs/singing_base.yaml --model chkpt/pitch/pitc
 python svs_infer_pitch.py --config configs/singing_base.yaml --model svs_opencpop.pt --pitch pit_opencpop.pt
 ```
 
-- 2 完整歌曲合成（[使用release模型](https://github.com/PlayVoice/VI-SVS/releases/tag/0.0.2)）
+- 2 完整歌曲合成（[使用release模型](https://github.com/PlayVoice/VI-SVS/releases/tag/0.0.3)）
 ```
 python svs_song_pitch.py --config configs/singing_base.yaml --model svs_opencpop.pt --pitch pit_opencpop.pt
 ```
